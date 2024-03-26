@@ -1,0 +1,156 @@
+function setupTrigger() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // Delete existing triggers for sendEnquiryToTeacher function
+  var triggers = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === "sendEnquiryToTeacher") {
+      ScriptApp.deleteTrigger(triggers[i]);
+    }
+  }
+
+  // Create a new trigger for sendEnquiryToTeacher function
+  ScriptApp.newTrigger('sendEnquiryToTeacher')
+    .forSpreadsheet(ss)
+    .onFormSubmit()
+    .create();
+
+    
+
+    ScriptApp.newTrigger('doGet')
+    .forSpreadsheet(ss)
+    .onFormSubmit()
+    .create();
+
+    
+}
+
+function sendEnquiryToTeacher() {
+  try {
+    
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Form Responses 2");
+    var lastRow = sheet.getLastRow();
+    var rowData = sheet.getRange(lastRow, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+    // Extracting relevant data from the form submission
+    var timestamp = rowData[0];
+    var fullName = rowData[1];
+    var email = rowData[2];
+    var mobile = rowData[3];
+    var qualification = rowData[4];
+    var year = rowData[5];
+    var branch = rowData[6];
+    var collegeCompany = rowData[7];
+    var course = rowData[8];
+    var other = rowData[9];
+    var source = rowData[10];
+   
+
+
+    var freeDemoSession = rowData[11];
+    var modeOfTraining = rowData[12];
+    
+    var counselorName = rowData[13];
+    
+
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("teachers list");
+    var lastRow = sheet.getLastRow();
+    var teacherNames = sheet.getRange("B2:B" + lastRow).getValues().flat(); // Retrieve teacher names from column B
+    
+    var teacherEmail, teacherName;
+
+
+    
+
+    for (var i = 0; i < teacherNames.length; i++) {
+      if (teacherNames[i] === counselorName) {
+        // Match found
+        foundMatch = true;
+        teacherEmail = sheet.getRange(i + 2, 3).getValue(); // Assuming email is in column C
+        teacherName = sheet.getRange(i + 2, 2).getValue(); // Assuming name is in column B
+        
+       var messageHtmlBody = HtmlService.createTemplateFromFile('template.html');
+      messageHtmlBody.rowData = rowData;
+     var messageBody = messageHtmlBody.evaluate().getContent();
+        // Send the HTML email
+        MailApp.sendEmail({
+          to: teacherEmail,
+          subject: "New Enquiry Received",
+          htmlBody: messageBody,
+        });
+
+        Logger.log("HTML email sent to " + teacherEmail);
+
+        // Exit the loop since we found a match
+        break;
+      }
+    }
+
+    if (!foundMatch) {
+      Logger.log("Counselor name not found in the list of teachers.");
+    }
+  } catch (error) {
+    Logger.log("Error occurred: " + error);
+  }
+
+  // Compose the email message to student
+  
+  
+  try {
+    var formSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Form Responses 2");
+    var formLastRow = formSheet.getLastRow();
+    var formData = formSheet.getRange(formLastRow, 1, 1, formSheet.getLastColumn()).getValues()[0];
+    var courseFromForm = formData[8]; // Assuming course is in column I
+
+    var sheet2 = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Course List");
+    var sheet2LastRow = sheet2.getLastRow();
+    var sheet2Data = sheet2.getRange(2, 1, sheet2LastRow - 1, sheet2.getLastColumn()).getValues(); // Assuming data starts from row 2
+    var pdfFileId = '';
+     Logger.log("Error occurred: " + pdfFileId);
+
+    for (var i = 0; i < sheet2Data.length; i++) {
+      var courseFromSheet2 = sheet2Data[i][0]; // Assuming course is in column A
+      
+      if (courseFromForm === courseFromSheet2) {
+        pdfFileId = sheet2Data[i][1]; // Assuming PDF ID is in column 
+        break;
+      }
+    }
+
+    var pdf= pdfFileId; 
+         Logger.log("Error occurred: " + pdf);
+
+
+    if (pdf !== '') {
+      var pdfBlob = DriveApp.getFileById(pdf).getBlob();
+      Logger.log("Error occurred: " + pdfBlob);
+
+      var messageHtmlBody = HtmlService.createTemplateFromFile('template2.html');
+      messageHtmlBody.rowData = formData;
+      messageHtmlBody.pdf = pdf;
+      var messageBody = messageHtmlBody.evaluate().getContent();
+
+      var email = formData[2]; // Assuming email is in column B
+
+      MailApp.sendEmail({
+        to: email,
+        subject: "Take Your Career to New Heights with ASTERISC: 7 Days Free  Demo Class Invitation 🌟🚀",
+        htmlBody: messageBody,
+        attachments: [pdfBlob]
+      });
+
+      Logger.log("HTML email sent to " + email);
+    } else {
+      Logger.log("No matching course found in Sheet2.");
+    }
+  } catch (error) {
+    Logger.log("Error occurred: " + error);
+  }
+
+  
+}
+
+
+
+
+// This function processes the selected demo date
